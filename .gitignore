@@ -1,0 +1,8 @@
+.DS_Store
+/js
+.vscode
+/out
+/reports
+/temp
+loginbruter_*
+/testcode
