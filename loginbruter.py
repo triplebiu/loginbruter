@@ -206,7 +206,24 @@ class LBruter(object):
             session.cookies.clear()
 
             #### 处理验证码，考虑使用ddddocr
-            pass
+            try:
+                loginUUID = "%s"%uuid.uuid4()
+                r = session.get("http://xx.xx.xx.xx:xx/bim-plus-demonstrate-server/captcha.jpg?uuid=%s"%loginUUID)
+
+                ocr = ddddocr.DdddOcr(show_ad=False)
+                payloads["captcha"] = ocr.classification(r.content)
+                outmsg["captcha"] = payloads["captcha"]
+
+                payloads["uuid"] = loginUUID
+            
+            except Exception as e:
+                outmsg["result"] = "FAILED while identify captcha"
+                self.message_q.put(outmsg)
+                logging.warning("\t%s\t图片验证码识别失败\t%s"%(workid,e))
+
+                retryFlag = True
+                retryDelay *= 2
+                continue
 
             #### 获取加密key
             _encode_key = ""
@@ -245,8 +262,22 @@ class LBruter(object):
                 continue
 
             #### 签名
-            pass
+            try:
+                data = {"Accept":"application/json"}
+                noncedata = session.post("http://xx.xx.xx.xx:xx/cp/hookNonce.json",json={},headers=data)
 
+                payloads["stime"] = noncedata.json().get("data").get("stime")
+                payloads["nonce"] = noncedata.json().get("data").get("nonce")
+
+                outmsg["nonce"] = payloads["nonce"]
+            except Exception as e:
+                outmsg["result"] = "FAILED while get Nonce"
+                self.message_q.put(outmsg)
+                logging.warning("\t%s\t获取Nonce失败\t%s"%(workid,e))
+
+                retryFlag = True
+                retryDelay *= 2
+                continue
 
             #### 提交登录请求
             try:
